@@ -48,3 +48,21 @@ func (s *UserStore) UpsertByEmail(ctx context.Context, email string, displayName
 	}
 	return userID, nil
 }
+
+func (s *UserStore) GetByID(ctx context.Context, userID string) (User, error) {
+	var u User
+	err := s.db.QueryRow(ctx, `
+		select id, display_name, avatar_url, email, email_verified, role, is_active
+		from public.users
+		where id = $1;
+	`, userID).Scan(
+		&u.ID,
+		&u.DisplayName,
+		&u.AvatarURL,
+		&u.Email,
+		&u.EmailVerified,
+		&u.Role,
+		&u.IsActive,
+	)
+	return u, err
+}

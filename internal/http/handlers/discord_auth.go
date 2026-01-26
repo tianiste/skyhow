@@ -13,6 +13,7 @@ import (
 type DiscordAuthHandler struct {
 	Discord      *auth.DiscordOAuth
 	Users        *store.UserStore
+	Sessions     *store.SessionStore
 	CookieSecure bool
 	CookieDomain string
 }
@@ -23,10 +24,17 @@ const (
 	sessionCookieName = "sb_session"
 )
 
-func NewDiscordAuthHandler(discord *auth.DiscordOAuth, users *store.UserStore, cookieSecure bool, cookieDomain string) *DiscordAuthHandler {
+func NewDiscordAuthHandler(
+	discord *auth.DiscordOAuth,
+	users *store.UserStore,
+	sessions *store.SessionStore,
+	cookieSecure bool,
+	cookieDomain string,
+) *DiscordAuthHandler {
 	return &DiscordAuthHandler{
 		Discord:      discord,
 		Users:        users,
+		Sessions:     sessions,
 		CookieSecure: cookieSecure,
 		CookieDomain: cookieDomain,
 	}
@@ -102,7 +110,19 @@ func (h *DiscordAuthHandler) Callback(c *gin.Context) {
 	}
 
 	exp := time.Now().Add(14 * 24 * time.Hour)
-	c.SetCookie(sessionCookieName, userID, int(time.Until(exp).Seconds()), "/", h.CookieDomain, h.CookieSecure, true)
+
+	if h.Sessions == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "sessions store not configured"})
+		return
+	}
+
+	sessionID, err := h.Sessions.Create(c.Request.Context(), userID, exp) // Added
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create session"})
+		return
+	}
+
+	c.SetCookie(sessionCookieName, sessionID, int(time.Until(exp).Seconds()), "/", h.CookieDomain, h.CookieSecure, true) // Changed
 
 	returnTo, _ := c.Cookie(returnToCookie)
 	c.SetCookie(returnToCookie, "", -1, "/", h.CookieDomain, h.CookieSecure, true)

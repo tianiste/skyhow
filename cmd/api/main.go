@@ -36,16 +36,21 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	sessionStore := store.NewSessionStore(db)
 	discordHandler := handlers.NewDiscordAuthHandler(
 		discordOAuth,
 		userStore,
+		sessionStore,
 		os.Getenv("COOKIE_SECURE") == "true",
 		os.Getenv("COOKIE_DOMAIN"),
 	)
 
 	router := httpapi.NewRouter(httpapi.RouterDeps{
-		DiscordAuth: discordHandler,
+		DiscordAuth:  discordHandler,
+		Users:        userStore,
+		Sessions:     sessionStore,
+		CookieSecure: os.Getenv("COOKIE_SECURE") == "true",
+		CookieDomain: os.Getenv("COOKIE_DOMAIN"),
 	})
 
 	log.Println("listening on :8080")
