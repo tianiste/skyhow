@@ -4,10 +4,12 @@ import (
 	"context"
 	"log"
 	"os"
+	"time"
 
 	"skyhow/internal/auth"
 	httpapi "skyhow/internal/http"
 	"skyhow/internal/http/handlers"
+	"skyhow/internal/services"
 	"skyhow/internal/store"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -37,14 +39,21 @@ func main() {
 		log.Fatal(err)
 	}
 	sessionStore := store.NewSessionStore(db)
+	authSvc := services.NewAuthService(
+		discordOAuth,
+		userStore,
+		sessionStore,
+		14*24*time.Hour,
+	)
+
 	discordHandler := handlers.NewDiscordAuthHandler(
 		discordOAuth,
 		userStore,
 		sessionStore,
+		authSvc,
 		os.Getenv("COOKIE_SECURE") == "true",
 		os.Getenv("COOKIE_DOMAIN"),
 	)
-
 	router := httpapi.NewRouter(httpapi.RouterDeps{
 		DiscordAuth:  discordHandler,
 		Users:        userStore,
