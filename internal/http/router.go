@@ -31,6 +31,7 @@ func NewRouter(deps RouterDeps) *gin.Engine {
 	{
 		auth.GET("/discord/start", deps.DiscordAuth.Start)
 		auth.GET("/discord/callback", deps.DiscordAuth.Callback)
+		auth.POST("/logout", deps.DiscordAuth.Logout)
 	}
 
 	r.GET("/me", func(c *gin.Context) {

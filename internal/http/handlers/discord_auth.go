@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"time"
 
@@ -130,4 +131,19 @@ func (h *DiscordAuthHandler) Callback(c *gin.Context) {
 		returnTo = "/"
 	}
 	c.Redirect(http.StatusFound, returnTo)
+}
+
+func (h *DiscordAuthHandler) Logout(c *gin.Context) {
+	sessionID, err := c.Cookie(sessionCookieName)
+	if err != nil {
+		log.Println("error", err)
+		return
+	}
+	if err := h.Sessions.Delete(c.Request.Context(), sessionID); err != nil {
+		log.Println("error on logout", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "logout error"})
+		return
+	}
+	c.SetCookie(sessionCookieName, "", -1, "/", h.CookieDomain, h.CookieSecure, true)
+	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
