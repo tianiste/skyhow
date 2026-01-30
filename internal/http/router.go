@@ -3,10 +3,10 @@ package http
 import (
 	"net/http"
 
-	"skyhow/internal/http/handlers"
-	"skyhow/internal/store"
-
 	"github.com/gin-gonic/gin"
+	"skyhow/internal/http/handlers"
+	"skyhow/internal/http/middleware"
+	"skyhow/internal/store"
 )
 
 type RouterDeps struct {
@@ -23,6 +23,13 @@ func NewRouter(deps RouterDeps) *gin.Engine {
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
 
+	r.Use(middleware.AuthMiddleware(
+		deps.Users,
+		deps.Sessions,
+		deps.CookieDomain,
+		deps.CookieSecure,
+	))
+
 	r.GET("/healthz", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"ok": true})
 	})
@@ -35,25 +42,13 @@ func NewRouter(deps RouterDeps) *gin.Engine {
 	}
 
 	r.GET("/me", func(c *gin.Context) {
-		sessionID, err := c.Cookie("sb_session")
-		if err != nil || sessionID == "" {
+		uAny, ok := c.Get("user")
+		if !ok || uAny == nil {
 			c.JSON(http.StatusOK, gin.H{"authenticated": false})
 			return
 		}
 
-		userID, err := deps.Sessions.GetUserIDBySessionID(c.Request.Context(), sessionID)
-		if err != nil || userID == "" {
-			c.SetCookie("sb_session", "", -1, "/", deps.CookieDomain, deps.CookieSecure, true)
-			c.JSON(http.StatusOK, gin.H{"authenticated": false})
-			return
-		}
-
-		u, err := deps.Users.GetByID(c.Request.Context(), userID)
-		if err != nil || !u.IsActive {
-			c.SetCookie("sb_session", "", -1, "/", deps.CookieDomain, deps.CookieSecure, true)
-			c.JSON(http.StatusOK, gin.H{"authenticated": false})
-			return
-		}
+		u := uAny.(store.User)
 
 		c.JSON(http.StatusOK, gin.H{
 			"authenticated": true,
