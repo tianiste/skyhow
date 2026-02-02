@@ -54,8 +54,14 @@ func main() {
 		os.Getenv("COOKIE_SECURE") == "true",
 		os.Getenv("COOKIE_DOMAIN"),
 	)
+
+	guideStore := store.NewGuideStore(db)
+	guideService := services.NewGuideService(guideStore)
+	guideHandler := handlers.NewGuideHandler(guideService)
+
 	router := httpapi.NewRouter(httpapi.RouterDeps{
 		DiscordAuth:  discordHandler,
+		Guides:       guideHandler,
 		Users:        userStore,
 		Sessions:     sessionStore,
 		CookieSecure: os.Getenv("COOKIE_SECURE") == "true",
