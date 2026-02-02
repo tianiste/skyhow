@@ -11,6 +11,7 @@ import (
 
 type RouterDeps struct {
 	DiscordAuth  *handlers.DiscordAuthHandler
+	Guides       *handlers.GuideHandler
 	Users        *store.UserStore
 	Sessions     *store.SessionStore
 	CookieSecure bool
@@ -39,6 +40,20 @@ func NewRouter(deps RouterDeps) *gin.Engine {
 		auth.GET("/discord/start", deps.DiscordAuth.Start)
 		auth.GET("/discord/callback", deps.DiscordAuth.Callback)
 		auth.POST("/logout", deps.DiscordAuth.Logout)
+	}
+
+	api := r.Group("/api")
+
+	guides := api.Group("/guides")
+	{
+		guides.GET("", deps.Guides.ListPublished)
+		guides.GET("/:id", deps.Guides.Get)
+
+		guides.POST("", middleware.RequireAuth(), deps.Guides.Create)
+		guides.PUT("/:id", middleware.RequireAuth(), deps.Guides.Update)
+		guides.POST("/:id/publish", middleware.RequireAuth(), deps.Guides.Publish)
+		guides.POST("/:id/unpublish", middleware.RequireAuth(), deps.Guides.Unpublish)
+		guides.DELETE("/:id", middleware.RequireAuth(), deps.Guides.Delete)
 	}
 
 	r.GET("/me", func(c *gin.Context) {

@@ -63,3 +63,16 @@ func AuthMiddleware(
 func clearSessionCookie(c *gin.Context, cookieDomain string, cookieSecure bool) {
 	c.SetCookie(sessionCookieName, "", -1, "/", cookieDomain, cookieSecure, true)
 }
+
+func RequireAuth() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if _, ok := c.Get("user"); !ok {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": "not authenticated",
+			})
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
+}
