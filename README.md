@@ -11,7 +11,7 @@ Right now the project is focused on getting the backend architecture right befor
 ### authentication  
 Users can log in using Discord OAuth.  
 When a user logs in, the backend creates or updates a user record in the database and creates a server-side session.  
-The session id is stored in a secure cookie (`sb_session`).  
+The session id is stored in a secure cookie `sb_session`.  
 
 Logging out deletes the session from the database and clears the cookie.
 
